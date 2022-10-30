@@ -233,10 +233,6 @@ However, publication bias is not the only reason for the asymmetry of the funnel
 
 Visually examining the meta-regression picture we have drawn, we find that there does seem to be a significant positive correlation between the difference in means and year for the experimental and control groups. Again the earlier studies have lower sampling variance (i.e. higher precision) and these earlier studies appear to have lower (accurate) effects compared to studies conducted in later years.
 
-
-
-Translated with www.DeepL.com/Translator (free version)
-
 # 12. Identify any studies contributing to publication bias. How do your updated meta-analysis results compare with a meta-analysis by Clement et. al. (2022)? Are there any concerns about these studies? If so, describe using references to existing papers what concerns have been raised?
 
 
