@@ -131,16 +131,10 @@ We can also see that the null hypothesis that lnRR = 0 can not be rejected becau
 ```{r}
 ## Calculate I2
 i2_vals <- orchaRd::i2_ml(MLMA)
-## Make a pretty table. First, lets clean up the names of the different I2
-## estimates. Lets remove I2_. It's a string, so, we can use some regular
-## expressions to fix that. `gsub` is pretty useful. You put a pattern in and
-## tell it what you would like to replace the text with. In this case, just
-## blank will do! Then, we'll make the first letter of what is left
-## capitalised.
+## Make a pretty table. First, lets clean up the names of the different I2. Estimates. Lets remove I2_. It's a string, so, we can use some regular. Expressions to fix that. `gsub` is pretty useful. You put a pattern in and. Tell it what you would like to replace the text with. In this case, just. Blank will do! Then, we'll make the first letter of what is left, capitalised.
 i2 <- tibble(type = firstup(gsub("I2_", "", names(i2_vals))), I2 = i2_vals)
 i2
-# You remember flextable. Now, lets make a pretty table. We can so some nice
-# modifications here too.
+# Now, lets make a pretty table.
 library(flextable)
 ft <- flextable(i2)%>%
     align(part = "header", align = "center") %>%
@@ -150,11 +144,80 @@ ft <- flextable(i2)%>%
 ft
 ```
 
+Overall, we have highly heterogeneous effect size data because sampling variation only contributes to 0 of the total variation in effects.
+
+From the multilevel meta-analytic model we find that only 5.585% of the total variation in effect size estimates is the result of differences between studies.
+
 
 ## Forest plot showing the mean estimate, 95% confidence interval, and prediction interval with clearly labelled axes, number of samples and studies plotted on figure
 
+There are some nice graphical approaches that capture the meta-analytic model results. We can use “orchard” plots which are modifications to what are called forest plots. We can do this with the orchaRd R package:
+
+```{r}
+# Make an orchard plot using the model object
+orchaRd::orchard_plot(MLMA, mod = 1, group = "Study", data = lnRR,
+    xlab = "log response ratio (lnRR)", angle = 45)
+```
+
+Figure 1: Orchard plot showing the mean lnRR for correlation coefficients estimated between physiology and activity, dispersal and behaviour. k = the number of effect sizes and the number of studies are in brackets. The size of the effect is scaled by the precision of each effect size value, which is 1 / the sqrt(v_lnRR)
 
 # 7. Funnel plot for visually assessing the possibility of publication bias.
+
+```{r}
+# Lets make a funnel plot to visualize the data in relation to the precision,
+metafor::funnel(x = lnRR$lnRR, vi = lnRR$V_lnRR, yaxis = "seinv", xlim = c(-2,3), ylim = c(0.1,100),
+    digits = 2, level = c(0.1, 0.05, 0.01), shade = c("white", "gray55", "gray 75"),
+    las = 1, xlab = "Correlation Coefficient (r)", atransf = tanh, legend = TRUE, col="skyblue")
+```
+
+Figure 2: Funnel plot depicting the correlation between lnRR and V_lnRR as a function of precision (1 / SE). The dotted lines are the theoretical 95% sampling variance intervals - the interval with which we expect effect size estimates to fall within if only sampling variance drives differences in effects. Shaded regions represent the p-value of studies. The white region indicates studies where the p-value is between 0.1 and 1; dark gray where the p-value of studies is between 0.05 and 0.1 and the lighter gray regions where the p-value of studies is significant.
+
+We can see from Fig. 2 above the typical funnel shape. You will notice that most effects lie in the positive correlation space – in other words there is a positive correlation between BMR and fitness. However, we also find some studies that show the opposite pattern. We expect that based on sampling theory alone, and indeed many of these effects fall close to the dotted sampling error intervals. Studies in the light grey regions are studies where the p-value was significant.
+
+We might expect under a file-drawer situation (i.e., where researchers stash away poorer quality studies showing opposite effects in their desk drawers) that studies with low power (i.e., low precision, wide standard errors, and small sample sizes) and non-significant correlations will go unpublished. This should be particularly true for studies that show the opposite to what we might predict by theory – specifically, negative correlations from studies with small sample sizes / low precision that are not significant. This is one factor that can drive what we call funnel asymmetry, showing a bunch of missing effect sizes in the bottom left corner of the funnel.
+
+# 8. Time-lag plot assessing how effect sizes may or may not have changed through time.
+
+Time-lag bias is a very common form of publication bias that results from a change in the average effect size with the accumulation of new studies. Often, under-powered studies that find surprising results are published first, and these initial studies usually stimulate a swath of new experiments seeking to test whether such a pattern exists in a new study system. To some extent, this is a good thing, and is expected. We need studies to replicate the finding so we are not fooled by the result.
+
+We know though that small studies are susceptible to huge sampling error. This can result in over-inflated effect sizes. As more studies accumulate, the average effect size usually converges on the ‘true’ mean.
+
+Time-lag bias is usually depicted in two ways. First, using what is called a ‘cumulative meta-analysis’. This is where we conduct a meta-analysis on a subset of data adding to this data as we move through time. We usually visualise this using what is called a ‘cumulative forest plot’.
+
+Second, we can also test whether the mean effect size changes with the year of publication using visual and meta-regression approaches.
+
+Given the two methods are similar, we’ll focus on the second option to keep things simple.
+
+Let’s first focus on some visuals in this task. Let’s visualize whether we see any relationship between average effect size and the year of publication? Use ggplot to do this. Scale the size of the points based on their sampling error. Remember to clearly label the axes and the legend.
+
+```{r}
+ggplot(lnRR, aes(y = lnRR, x = Year..print., size = 1/sqrt(V_lnRR))) + geom_point(alpha = 0.3) +
+    geom_smooth(method = lm, col = "red", show.legend = FALSE) + labs(x = "Publication Year",
+    y = "Fisher's Z-transformed Correlation Coefficient (Zr)", size = "Precision (1/SE)") +
+    theme_classic()
+```
+
+# 9. Formal meta-regression model that includes year as a moderator (fixed effect) to test for time-lag bias
+
+```{r}
+library(metafor)
+# Including sampling variance as moderator
+meta_reg <- rma.mv(lnRR ~ Year..print., V = V_lnRR, random = list(~1 | Study, ~1 | residual),
+    test = "t", dfs = "contain", data = lnRR)
+summary(meta_reg)
+```
+
+
+# 10. Formal meta-regression model that includes inverse sampling variance (i.e., 1/vlnRR) to test for file-drawer biases 
+
+```{r}
+rma.mv(lnRR ~ (1 / V_lnRR), V = V_lnRR, random = list(~1 | Study, ~1 | residual), test = "t", dfs = "contain", data = lnRR)
+```
+
+# 11. A written paragraph that discusses the potential for publication bias based on the meta-regression results. What type of publication bias, if any, appears to be present in the data? If publication bias is present, what does it mean and what might be contributing to such bias?
+
+
+# 12. Identify any studies contributing to publication bias. How do your updated meta-analysis results compare with a meta-analysis by Clement et. al. (2022)? Are there any concerns about these studies? If so, describe using references to existing papers what concerns have been raised?
 
 
 
