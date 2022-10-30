@@ -11,10 +11,91 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # 1. Correct analysis of Clark et al. (2020) data (i.e., OA_activitydat_20190302_BIOL3207.csv) to generate the summary statistics (means, SD, N) for each of the fish species’ average activity for each treatment.
 
+### By adding the link in the `()` brackets it will hyperlink "My GitHub Repository". This is how to hyperlink in Rmarkdown documents.
+
 [My GitHub Repository](https://github.com/JessicaHu119/Shiqi-Hu_assigenment2.git)
+
+### Read all files
+
 ```{r}
-library()
+library(tidyverse)
 OA <- read_csv("./Data/OA_activitydat_20190302_BIOL3207.csv")
-
-
+clark_paper <- read_csv("./Data/clark_paper_data.csv")
+ocean_meta <- read_csv("./Data/ocean_meta_data.csv")
 ```
+
+### Calculate means, SD, N for each of the fish species’ average activity for each treatment 
+
+```{r}
+data_OA <- OA %>% group_by(species, treatment) %>%
+              summarise(mean = mean(activity, na.rm = TRUE),
+                        sd = sd(activity, na.rm = TRUE),
+                        n = length(unique(animal_id))) %>%
+              rename(Species = "species")
+```
+
+# 2. Through coding, merge the summary statistics generated from 1) with the metadata (i.e., clark_paper_data.csv) from Clark et al. (2020).
+
+```{r}
+cb <- cbind(clark_paper, data_OA)
+new <- pivot_wider(cb, names_from = treatment,
+                     names_glue = "{treatment}_{.value}",
+                     values_from = c("mean", "sd", "n"))
+```
+
+# 3. Through coding, correctly merge the combined summary statistics and metadata from Clark et al. (2020) (output from 1 & 2) into the larger meta-analysis dataset (i.e., ocean_meta_data.csv).
+
+```{r}
+dim(ocean_meta)
+dim(new)
+```
+
+### Do some renaming of colnames so they match ocean_meta
+
+```{r}
+new1 <-  new %>% rename("oa.mean" = CO2_mean,
+                            "oa.sd" = CO2_sd,
+                            "oa.n" = CO2_n,
+                            "ctrl.mean" = control_mean,
+                            "ctrl.sd" = control_sd,
+                            "ctrl.n" = control_n)
+```
+
+### Reorder col names based on names in ocean_meta
+
+```{r}
+new1 <- new1[names(ocean_meta)]
+```
+
+### Check columns are in same order
+
+```{r}
+colnames(ocean_meta) == colnames(new1)
+```
+
+### Bind the two dataframes
+
+```{r}
+total <- rbind(ocean_meta, new1)
+```
+
+# 4. Correctly calculate the log response ratio (lnRR) effect size for every row of the dataframe using metafor’s escalc() function.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
