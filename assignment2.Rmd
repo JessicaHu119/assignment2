@@ -37,6 +37,7 @@ data_OA <- OA %>% group_by(species, treatment) %>%
 # 2. Through coding, merge the summary statistics generated from 1) with the metadata (i.e., clark_paper_data.csv) from Clark et al. (2020).
 
 ```{r}
+# Merge the table and add new columns and reduce rows
 cb <- cbind(clark_paper, data_OA)
 new <- pivot_wider(cb, names_from = treatment,
                      names_glue = "{treatment}_{.value}",
@@ -46,6 +47,7 @@ new <- pivot_wider(cb, names_from = treatment,
 # 3. Through coding, correctly merge the combined summary statistics and metadata from Clark et al. (2020) (output from 1 & 2) into the larger meta-analysis dataset (i.e., ocean_meta_data.csv).
 
 ```{r}
+# Displays the rows and columns of the table
 dim(ocean_meta)
 dim(new)
 ```
@@ -53,6 +55,7 @@ dim(new)
 ### Do some renaming of colnames so they match ocean_meta
 
 ```{r}
+# Rename the column
 new1 <-  new %>% rename("oa.mean" = CO2_mean,
                             "oa.sd" = CO2_sd,
                             "oa.n" = CO2_n,
@@ -98,19 +101,18 @@ lnRR <- metafor::escalc(measure = "ROM", m1i = ctrl.mean, m2i = oa.mean, sd1i = 
 
 # 5. Correct meta-analytic model fitted to the data that controls for the sampling variance of lnRR. The model should include a random effect of study and observation. Use metafor’s rma.mv() function.
 
-
-
 ```{r}
+#Integrated model
 MLMA <- metafor::rma.mv( lnRR~1, V = V_lnRR, random=list(~1|Study, ~1|residual), method = "REML", test = "t", dfs = "contain", data=lnRR)
 MLMA
 ```
 
 # 6. Written paragraph of the findings and what they mean which is supported with a figure. The paragraph should include: 
 
-### Overall meta-analytic mean
+## Overall meta-analytic mean
 We want to know what the overall meta-analytic mean effect size across the studies actually is estimated to be. We can see that from the model by extracting the intercept (labeled ‘estimate’ in the model output). Recall that the model is just an object that stores all the values for us.
 
-We can extract the estimate using the coef function, it is estimated to be 0.098, which tells us that the mean Zr value is positive, but there is a rather weak overall association between physiology and dispersal / movement when we pool across all studies.
+We can extract the estimate, it is estimated to be -0.186, which tells us that the mean lnRR value is negative, but there is a rather weak overall association between physiology and dispersal / movement when we pool across all studies.
 
 If we want to convert the overall meta-analytic mean back to the correlation coefficient we can use the predict function to help with that. We can use the transf argument within the function:
 
@@ -124,9 +126,9 @@ There are LOTS of different transformations that can be done depending on which 
 
 The 95% confidence intervals for the overall meta-analysis mean are from -0.350 to  0.098. At the same time, 95% of the time, we would expect the true mean to fall between -0.311 and 0.189 lnRR values.
 
-We can also see that the null hypothesis that lnRR = 0 can not be rejected because there is a significantly smaller estimate than a correlation of 0, which we can see from the p-value being > 0.05. Actually, p-value is 0.2673.
+We can also see that there is a significantly smaller estimate than a correlation of 0, which we can see from the p-value being > 0.05. Actually, p-value is 0.2673. It means that the experimental group of each experiment does not differ much from the control group.
 
-## Measures of heterogeneity in effect size estimates across studies (i.e., I2 and/or prediction intervals - see predict() function in metafor)
+### Measures of heterogeneity in effect size estimates across studies (i.e., I2 and/or prediction intervals - see predict() function in metafor)
 
 ```{r}
 ## Calculate I2
@@ -148,7 +150,6 @@ Overall, we have highly heterogeneous effect size data because sampling variatio
 
 From the multilevel meta-analytic model we find that only 5.585% of the total variation in effect size estimates is the result of differences between studies.
 
-
 ## Forest plot showing the mean estimate, 95% confidence interval, and prediction interval with clearly labelled axes, number of samples and studies plotted on figure
 
 There are some nice graphical approaches that capture the meta-analytic model results. We can use “orchard” plots which are modifications to what are called forest plots. We can do this with the orchaRd R package:
@@ -165,9 +166,9 @@ Figure 1: Orchard plot showing the mean lnRR for correlation coefficients estima
 
 ```{r}
 # Lets make a funnel plot to visualize the data in relation to the precision,
-metafor::funnel(x = lnRR$lnRR, vi = lnRR$V_lnRR, yaxis = "seinv", xlim = c(-2,3), ylim = c(0.1,100),
-    digits = 2, level = c(0.1, 0.05, 0.01), shade = c("white", "gray55", "gray 75"),
-    las = 1, xlab = "Correlation Coefficient (r)", atransf = tanh, legend = TRUE, col="skyblue")
+metafor::funnel(x = lnRR$lnRR, vi = lnRR$V_lnRR, yaxis = "seinv", xlim = c(-2,2), ylim = c(0.1,100),
+    digits = 2, level = c(0.1, 0.05, 0.01), shade = c("white", "gray25", "gray 55", "gray95"),
+    las = 1, xlab = "Correlation Coefficient (r)", atransf = tanh, legend = TRUE, col="black")
 ```
 
 Figure 2: Funnel plot depicting the correlation between lnRR and V_lnRR as a function of precision (1 / SE). The dotted lines are the theoretical 95% sampling variance intervals - the interval with which we expect effect size estimates to fall within if only sampling variance drives differences in effects. Shaded regions represent the p-value of studies. The white region indicates studies where the p-value is between 0.1 and 1; dark gray where the p-value of studies is between 0.05 and 0.1 and the lighter gray regions where the p-value of studies is significant.
@@ -193,8 +194,8 @@ Let’s first focus on some visuals in this task. Let’s visualize whether we s
 ```{r}
 ggplot(lnRR, aes(y = lnRR, x = Year..print., size = 1/sqrt(V_lnRR))) + geom_point(alpha = 0.3) +
     geom_smooth(method = lm, col = "red", show.legend = FALSE) + labs(x = "Publication Year",
-    y = "Fisher's Z-transformed Correlation Coefficient (Zr)", size = "Precision (1/SE)") +
-    theme_classic()
+    y = "Fisher's Log Response Ratio Correlation Coefficient (lnRR)", size = "Precision (1/SE)") +
+    theme_classic() 
 ```
 
 # 9. Formal meta-regression model that includes year as a moderator (fixed effect) to test for time-lag bias
@@ -207,15 +208,34 @@ meta_reg <- rma.mv(lnRR ~ Year..print., V = V_lnRR, random = list(~1 | Study, ~1
 summary(meta_reg)
 ```
 
-
 # 10. Formal meta-regression model that includes inverse sampling variance (i.e., 1/vlnRR) to test for file-drawer biases 
 
 ```{r}
-rma.mv(lnRR ~ (1 / V_lnRR), V = V_lnRR, random = list(~1 | Study, ~1 | residual), test = "t", dfs = "contain", data = lnRR)
+meta_reg_test <- rma.mv(lnRR ~ (1 / V_lnRR), V = V_lnRR, random = list(~1 | Study, ~1 | residual), test = "t", dfs = "contain", data = lnRR)
+summary(meta_reg_test)
+```
+
+```{r}
+# How much variation does time when results were published explain in Zr?
+r2_time <- orchaRd::r2_ml(meta_reg_test)  
+r2_time
 ```
 
 # 11. A written paragraph that discusses the potential for publication bias based on the meta-regression results. What type of publication bias, if any, appears to be present in the data? If publication bias is present, what does it mean and what might be contributing to such bias?
 
+Meta-analysis bias, and the Cochrane Taxonomy, which emphasizes the integrity of included studies primarily through reporting bias, and classifies reporting bias as: publication bias, time lag bias, multiple/repeat publication bias, publication location bias, citation bias, language bias, and outcome reporting bias.
+
+Among these biases, the most studied is publication bias, which is also a very important factor affecting the quality of Meta-analysis. publication bias refers to the greater likelihood that study results with statistically significant research significance will be reported and published than those with no significance and invalid results. The reliance on the direction and strength of the findings when researchers, reviewers, or editors select papers for publication creates a bias that makes the process of publication not a random event and therefore suppresses the publication of certain studies. Funnel plots are the most common method of identifying publication bias during Meta-analysis, and they respond to estimates of the intervention effects of individual studies for a given sample size or precision of the study.
+
+When performing Meta-analysis, the possibility of bias must be tested for the presence of bias. However, publication bias is difficult to avoid, and for its identification, the most common method is the funnel plot method, which is a funnel plot expression that can be more intuitive to visually detect the presence or absence of bias. Theoretically, the point estimate of each independent study effect that was included in the Meta-analysis, the set in the plane coordinate system should be an inverted funnel shape, hence the name funnel plot. Small sample size and low study precision are distributed at the bottom of the funnel plot and scattered around; large sample size and high study precision are distributed at the top of the funnel plot and concentrated toward the middle. As can be seen from the funnel plots drawn in our study, we present asymmetric funnel plots and the asymmetry is very pronounced, indicating the presence of bias, which may overestimate the treatment effect.
+
+However, publication bias is not the only reason for the asymmetry of the funnel plot; we have very large heterogeneity (I^2), which may be responsible for the asymmetry of the funnel plot. But looking at the white area in the funnel plot, there is the insignificant area where there are many dots, indicating that many articles are not published, suggesting that there may be publication bias.
+
+Visually examining the meta-regression picture we have drawn, we find that there does seem to be a significant positive correlation between the difference in means and year for the experimental and control groups. Again the earlier studies have lower sampling variance (i.e. higher precision) and these earlier studies appear to have lower (accurate) effects compared to studies conducted in later years.
+
+
+
+Translated with www.DeepL.com/Translator (free version)
 
 # 12. Identify any studies contributing to publication bias. How do your updated meta-analysis results compare with a meta-analysis by Clement et. al. (2022)? Are there any concerns about these studies? If so, describe using references to existing papers what concerns have been raised?
 
