@@ -1,6 +1,6 @@
 ---
 title: "assignment_2"
-author: "u7457284"
+author: "u7457284 and Shiqi Hu"
 date: "2022-10-30"
 output: html_document
 ---
@@ -157,7 +157,7 @@ There are some nice graphical approaches that capture the meta-analytic model re
 ```{r}
 # Make an orchard plot using the model object
 orchaRd::orchard_plot(MLMA, mod = 1, group = "Study", data = lnRR,
-    xlab = "log response ratio (lnRR)", angle = 45)
+    xlab = "log response ratio (lnRR)", angle = 45) + labs(title = "Figure 1: Forest plot")
 ```
 
 Figure 1: Orchard plot showing the mean lnRR for correlation coefficients estimated between physiology and activity, dispersal and behaviour. k = the number of effect sizes and the number of studies are in brackets. The size of the effect is scaled by the precision of each effect size value, which is 1 / the sqrt(v_lnRR)
@@ -195,7 +195,7 @@ Let’s first focus on some visuals in this task. Let’s visualize whether we s
 ggplot(lnRR, aes(y = lnRR, x = Year..print., size = 1/sqrt(V_lnRR))) + geom_point(alpha = 0.3) +
     geom_smooth(method = lm, col = "red", show.legend = FALSE) + labs(x = "Publication Year",
     y = "Fisher's Log Response Ratio Correlation Coefficient (lnRR)", size = "Precision (1/SE)") +
-    theme_classic() 
+    theme_classic() + labs(title = "Figure 2: Time-lag bias")
 ```
 
 # 9. Formal meta-regression model that includes year as a moderator (fixed effect) to test for time-lag bias
@@ -216,7 +216,7 @@ summary(meta_reg_test)
 ```
 
 ```{r}
-# How much variation does time when results were published explain in Zr?
+# How much variation does time when results were published explain in lnRR?
 r2_time <- orchaRd::r2_ml(meta_reg_test)  
 r2_time
 ```
@@ -235,7 +235,7 @@ Visually examining the meta-regression picture we have drawn, we find that there
 
 # 12. Identify any studies contributing to publication bias. How do your updated meta-analysis results compare with a meta-analysis by Clement et. al. (2022)? Are there any concerns about these studies? If so, describe using references to existing papers what concerns have been raised?
 
-
+I believe that the results of my updated meta-analysis have some similarity to those of Clement et al. (2022). Although the positive correlation I derived for time lag bias is not consistent with the literature, they both have the potential for time lag bias. It is clear from my meta-analysis that the mean difference analysis for the earlier dated treatment group has higher precision compared to the mean group, suggesting that the current mean difference analysis is less precise and may have some impact on the experimental results. The meta-analysis faces many challenges. A major challenge is that the results of meta-analyses are not of better quality than the studies used. The second challenge is to publish results that are biased toward supportive (and usually statistically significant) results. If a supportive study is published and a nonsignificant finding is not, then the results of the meta-analysis will show an upward bias. A third problem arises from the fact that there are only a small number of studies within a research area. Just as any study can have greater credibility from a larger sample, a meta-analysis can yield more meaningful results when it includes more studies representing a larger number of participants. Finally, there is the question of how to deal with heterogeneous effects. If heterogeneity cannot be addressed by a mediator analysis, it is doubtful that the average results can be meaningfully interpreted. ( T R. Levine and C R. Hullett, 2008)
 
 
 
